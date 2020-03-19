@@ -1,7 +1,13 @@
+!.gitkeep
+
 vendor/
 .bundle/
 
-/tmp
+/tmp/*
 /input/*
 /output/*
 
+!/input/
+
+!/output/
+!/output/scripts/
