@@ -8,6 +8,8 @@ vendor/
 /output/*
 
 !/input/
+!/input/sample_titles.txt
 
 !/output/
 !/output/scripts/
+!/output/sample_evaluate_title_result.csv
