@@ -1,0 +1,7 @@
+vendor/
+.bundle/
+
+/tmp
+/input/*
+/output/*
+
