@@ -102,11 +102,34 @@ module Tokenize
           "title" => tokenized_sentence.to_s,
           # "words" => @sentence.words.map {|word| [word.to_s, word.part_of_speech]}.to_h
         }
-        [
-          "end_with_noun?", "with_space?", "only_one_noun?", "with_descriptive_noun?", "with_particle?", "with_relative?"
-        ].each_with_object(result) do |check_method, result_hash|
+        check_methods.each_with_object(result) do |check_method, result_hash|
           result_hash[check_method] = send(check_method) ? 1 : 0
         end
+      end
+
+      def result_keys
+        sentence_properties.concat(check_methods)
+      end
+
+      def sentence_properties
+        [
+          "title",
+        # "words"
+        ]
+      end
+
+      def check_methods
+        [
+          "with_space?",
+          "with_one_space?",
+          "with_more_than_one_spaces?",
+          "end_with_noun?",
+          "only_one_noun_block?",
+          "more_than_15_chars?",
+          "with_descriptive_noun?",
+          "with_particle?",
+          "with_relative?"
+        ]
       end
 
       private
@@ -115,16 +138,33 @@ module Tokenize
         @sentence.words.last.noun?
       end
 
-      # bad
       def with_space?
         !@sentence.to_s.match(/ /).nil?
       end
 
-      def only_one_noun?
+      def with_one_space?
+        space_count  == 1
+      end
+
+      def with_more_than_one_spaces?
+        space_count > 1
+      end
+
+      def space_count
+        @sentence.to_s.count(" ")
+      end
+
+      # bad_title_conditions
+      def only_one_noun_block?
+        return false if with_space?
         @sentence.not_specified_part_of_speech_size("noun") == 0
       end
 
-      # good
+      # good_title_conditions
+      def more_than_15_chars?
+        @sentence.to_s.length > 15
+      end
+
       def with_descriptive_noun?
         end_with_noun? && @sentence.not_specified_part_of_speech_size("noun") > 0
       end

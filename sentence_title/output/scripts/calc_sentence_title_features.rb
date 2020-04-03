@@ -1,9 +1,10 @@
 require "csv"
+require_relative "../../tokenize.rb"
 
 $is_debug = true
 
 def main(csv)
-  csv_cols = ["end_with_noun?", "with_space?", "only_one_noun?", "with_descriptive_noun?", "with_particle?", "with_relative?"]
+  csv_cols = Tokenize::SentenceReviewer.check_methods
   results = csv_cols.each_with_object({}) do |col, result_hash|
     result_hash[col] = 0
   end
@@ -15,9 +16,9 @@ def main(csv)
   end
 
   all_count = FileHandler.line_count(csv)
-  puts "レコード数: #{all_count}"
+  puts "レコード数: #{CommonUtilities.number_with_commma(all_count)}"
   results.each do |col, count|
-    puts "#{col}: #{count} (#{CommonUtilities.percent(count, all_count)}%)"
+    puts "#{col}: #{CommonUtilities.number_with_commma(count)} (#{CommonUtilities.percent(count, all_count)}%)"
   end
 end
 
@@ -61,7 +62,7 @@ module FileHandler
     end
 
     def progress(current_count, all_count)
-      "#{Time.now}: #{CommonUtilities.percent(current_count, all_count)}% (#{current_count}/#{all_count})"
+      "#{Time.now}: #{CommonUtilities.percent(current_count, all_count)}% (#{CommonUtilities.number_with_commma(current_count)} / #{CommonUtilities.number_with_commma(all_count)})"
     end
   end
 end
@@ -70,6 +71,10 @@ module CommonUtilities
   class << self
     def percent(num, all_count)
       (num.fdiv(all_count) * 100).round(2)
+    end
+
+    def number_with_commma(number)
+      number.to_s.gsub(/(\d)(?=\d{3}+$)/, '\\1,')
     end
   end
 end

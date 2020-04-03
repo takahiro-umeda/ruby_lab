@@ -5,7 +5,6 @@ $is_debug = true
 
 def main(title_file, output_file)
   output_file_writer = CSV.open(output_file, "w")
-  output_cols = ["title", "end_with_noun?", "with_space?", "only_one_noun?", "with_descriptive_noun?", "with_particle?", "with_relative?", "words"]
   output_file_writer.puts(output_cols)
 
   FileHandler.file_foreach(title_file) do |title|
@@ -15,7 +14,13 @@ def main(title_file, output_file)
     output_file_writer.puts(output_cols.map {|col| review_result[col]})
   end
 
+
+  puts "#{output_file}を作成しました"
   output_file_writer.close
+end
+
+def output_cols
+  Tokenize::SentenceReviewer.result_keys
 end
 
 module FileHandler
@@ -60,7 +65,7 @@ module FileHandler
     end
 
     def progress(current_count, all_count)
-      "#{Time.now}: #{CommonUtilities.percent(current_count, all_count)}% (#{current_count}/#{all_count})"
+      "#{Time.now}: #{CommonUtilities.percent(current_count, all_count)}% (#{CommonUtilities.number_with_commma(current_count)} / #{CommonUtilities.number_with_commma(all_count)})"
     end
   end
 end
@@ -69,6 +74,10 @@ module CommonUtilities
   class << self
     def percent(num, all_count)
       (num.fdiv(all_count) * 100).round(2)
+    end
+
+    def number_with_commma(number)
+      number.to_s.gsub(/(\d)(?=\d{3}+$)/, '\\1,')
     end
   end
 end

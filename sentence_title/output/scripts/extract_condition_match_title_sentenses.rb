@@ -1,27 +1,24 @@
 require "csv"
+require_relative "../../tokenize.rb"
 
 $is_debug = true
 
 def main(csv, condition_str)
-  output_file_writer = CSV.open(output_csvname(csv, condition_str), "w")
-  output_cols = ["title", "end_with_noun?", "with_space?", "only_one_noun?", "with_descriptive_noun?", "with_particle?", "with_relative?", "words"]
+  condition_str = condition_str.gsub(/¥?/, "")
+  output_file = output_csvname(csv, condition_str)
+  output_file_writer = CSV.open(output_file, "w")
+  output_cols = Tokenize::SentenceReviewer.result_keys
   output_file_writer.puts(output_cols)
 
   FileHandler.csv_foreach(csv) do |row|
-
-    end_with_noun = row["end_with_noun?"] == "1"
-    with_space = row["with_space?"] == "1"
-    only_one_noun = row["only_one_noun?"] == "1"
-    with_descriptive_noun = row["with_descriptive_noun?"] == "1"
-    with_particle = row["with_particle?"] == "1"
-    with_relative = row["with_relative?"] == "1"
-
-    next unless eval(condition_str)
+    evaluator = SentenceStatusEvaluateAgent.new(Tokenize::SentenceReviewer.check_methods, row)
+    next unless evaluator.exec(condition_str)
 
     output_row_values = row
     output_file_writer.puts(output_row_values)
   end
-
+  
+  puts "#{output_file}を作成しました"
   output_file_writer.close
 end
 
@@ -29,6 +26,22 @@ def output_csvname(input_csv, condition_str)
   input_csvname = input_csv.split("/").last.gsub(/\.csv/, "")
   condition_for_name = condition_str.gsub(/ /, "_")
   "#{input_csvname}_extracting_#{condition_for_name}.csv"
+end
+
+class SentenceStatusEvaluateAgent
+  def initialize(check_methods, statuses)
+    check_methods.each do |check_method|
+      variable_name = check_method.gsub(/\?/, "")
+      value = statuses[check_method] == "1"
+
+      self.class.send("attr_accessor", variable_name)
+      self.instance_variable_set("@#{variable_name}", value)
+    end
+  end
+  
+  def exec(condition_str)
+    eval(condition_str)
+  end
 end
 
 module FileHandler
@@ -71,7 +84,7 @@ module FileHandler
     end
 
     def progress(current_count, all_count)
-      "#{Time.now}: #{CommonUtilities.percent(current_count, all_count)}% (#{current_count}/#{all_count})"
+      "#{Time.now}: #{CommonUtilities.percent(current_count, all_count)}% (#{CommonUtilities.number_with_commma(current_count)} / #{CommonUtilities.number_with_commma(all_count)})"
     end
   end
 end
@@ -80,6 +93,10 @@ module CommonUtilities
   class << self
     def percent(num, all_count)
       (num.fdiv(all_count) * 100).round(2)
+    end
+
+    def number_with_commma(number)
+      number.to_s.gsub(/(\d)(?=\d{3}+$)/, '\\1,')
     end
   end
 end
