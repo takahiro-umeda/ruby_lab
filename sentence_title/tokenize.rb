@@ -123,8 +123,11 @@ module Tokenize
           "with_space?",
           "with_one_space?",
           "with_more_than_one_spaces?",
+          "start_with_space?",
           "end_with_noun?",
           "only_one_noun_block?",
+          "end_with_number?",
+          "with_many_delimiters?",
           "more_than_15_chars?",
           "with_descriptive_noun?",
           "with_particle?",
@@ -139,11 +142,11 @@ module Tokenize
       end
 
       def with_space?
-        !@sentence.to_s.match(/ /).nil?
+        sentence_match_pattern?(/ /)
       end
 
       def with_one_space?
-        space_count  == 1
+        space_count == 1
       end
 
       def with_more_than_one_spaces?
@@ -154,10 +157,30 @@ module Tokenize
         @sentence.to_s.count(" ")
       end
 
+      def start_with_space?
+        sentence_match_pattern?(/^( |　)/)
+      end
+
       # bad_title_conditions
       def only_one_noun_block?
         return false if with_space?
         @sentence.not_specified_part_of_speech_size("noun") == 0
+      end
+
+      def end_with_number?
+        sentence_match_pattern?(/[0-9０-９]$/)
+      end
+
+      def with_many_delimiters?
+        [",", "、"].each do |delimiter|
+          return true if @sentence.to_s.count(delimiter) >= 2
+        end
+
+        ["・"].each do |delimiter|
+          return true if @sentence.to_s.count(delimiter) >= 3
+        end
+
+        false
       end
 
       # good_title_conditions
@@ -176,6 +199,14 @@ module Tokenize
       # 関係詞(動詞を含む)
       def with_relative?
         @sentence.specified_part_of_speech_size("verb") > 0
+      end
+
+      def sentence_match_pattern?(regexp)
+        exist_pattern?(@sentence.to_s, regexp)
+      end
+
+      def exist_pattern?(str, regexp)
+        !(str.match(regexp).nil?)
       end
     end
   end

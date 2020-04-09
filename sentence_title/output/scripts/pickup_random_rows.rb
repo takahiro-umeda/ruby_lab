@@ -1,47 +1,53 @@
 require "csv"
-require_relative "../../tokenize.rb"
 
 $is_debug = true
 
-def main(csv, condition_str)
-  condition_str = condition_str.gsub(/¥?/, "").strip
-  output_file = output_csvname(csv, condition_str)
+def main(csv, pickup_count)
+  output_file = output_filename(csv, pickup_count)
   output_file_writer = CSV.open(output_file, "w")
-  output_cols = Tokenize::SentenceReviewer.result_keys
+
+  output_cols = csv_header_from(csv)
   output_file_writer.puts(output_cols)
 
-  FileHandler.csv_foreach(csv) do |row|
-    evaluator = SentenceStatusEvaluateAgent.new(Tokenize::SentenceReviewer.check_methods, row)
-    next unless evaluator.exec(condition_str)
+  pickuped_count = 0
+  csv_row_size = FileHandler.line_count(csv)
 
-    output_row_values = row
-    output_file_writer.puts(output_row_values)
+  while pickuped_count < pickup_count
+    FileHandler.csv_foreach(csv) do |row|
+      next if pickuped_count >= pickup_count
+
+      next unless pickup_now?(pickup_count, csv_row_size)
+
+      output_file_writer.puts(row)
+      pickuped_count += 1
+    end
   end
-  
+
   puts "#{output_file}を作成しました"
   output_file_writer.close
 end
 
-def output_csvname(input_csv, condition_str)
-  input_csvname = input_csv.split("/").last.gsub(/\.csv/, "")
-  condition_for_name = condition_str.gsub(/ /, "_")
-  "#{input_csvname}_extracting_#{condition_for_name}.csv"
+def output_filename(source_csv, pickup_count)
+  dir_elements = source_csv.split("/")
+
+  file = dir_elements.last
+  file = "pickup_#{pickup_count}_#{file}"
+  dir_elements[-1] = file
+
+  dir_elements.join("/")
 end
 
-class SentenceStatusEvaluateAgent
-  def initialize(check_methods, statuses)
-    check_methods.each do |check_method|
-      variable_name = check_method.gsub(/\?/, "")
-      value = statuses[check_method] == "1"
+def csv_header_from(target_csv)
+  csv = CSV.open(target_csv)
+  header = csv.readline
+  csv.close
 
-      self.class.send("attr_accessor", variable_name)
-      self.instance_variable_set("@#{variable_name}", value)
-    end
-  end
-  
-  def exec(condition_str)
-    eval(condition_str)
-  end
+  header
+end
+
+def pickup_now?(pickup_count, target_count)
+  # 例 10,000個から1,000個取る場合。数が1/10になる=10,000/1,000
+  rand(target_count / pickup_count) + 1 == 1
 end
 
 module FileHandler
@@ -101,6 +107,4 @@ module CommonUtilities
   end
 end
 
-
-
-main(ARGV[0],ARGV[1])
+main(ARGV[0], ARGV[1].to_i)
